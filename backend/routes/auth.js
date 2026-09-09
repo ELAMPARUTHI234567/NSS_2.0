@@ -325,8 +325,10 @@ router.post('/forgot-password/request', async (req, res) => {
       user_id: user.user_id,
       email: displayEmail,
       maskedEmail,
-      otpPreview: generatedOtp,
-      message: `Account verified for ${user.user_id}. A 6-digit OTP code has been generated.`
+      otpPreview: process.env.NODE_ENV === 'production' ? undefined : generatedOtp,
+      message: process.env.NODE_ENV === 'production'
+        ? `Account verified for ${user.user_id}. A 6-digit OTP code has been generated.`
+        : `Account verified for ${user.user_id}. A 6-digit OTP code has been generated.`
     });
   } catch (err) {
     console.error('Request OTP error:', err);
@@ -478,8 +480,8 @@ router.post('/forgot-password', async (req, res) => {
       user_id: user.user_id,
       email: displayEmail,
       maskedEmail,
-      otpPreview: generatedOtp,
-      message: `Account verified for ${user.user_id}. Please enter OTP code ${generatedOtp} and your new password to complete reset.`
+      otpPreview: process.env.NODE_ENV === 'production' ? undefined : generatedOtp,
+      message: `Account verified for ${user.user_id}. Please enter your OTP code and new password to complete reset.`
     });
   } catch (err) {
     console.error('Forgot password error:', err);

@@ -27,7 +27,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Enable CORS & JSON parsing
-app.use(cors());
+const allowedOrigins = process.env.CORS_ORIGIN || process.env.FRONTEND_URL;
+app.use(cors({
+  origin: allowedOrigins && allowedOrigins !== '*' 
+    ? allowedOrigins.split(',').map(s => s.trim()) 
+    : '*',
+  credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 

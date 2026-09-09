@@ -8,7 +8,8 @@ const DB_CONFIG = {
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'nss_db',
-  port: parseInt(process.env.DB_PORT || '3306', 10)
+  port: parseInt(process.env.DB_PORT || '3306', 10),
+  ssl: process.env.DB_SSL === 'true' || process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : undefined
 };
 
 let dbMode = 'mysql';
@@ -54,15 +55,19 @@ async function query(sql, params = []) {
 async function initializeDatabase() {
   // Try connecting to MySQL first
   try {
-    const conn = await mysql.createConnection({
-      host: DB_CONFIG.host,
-      user: DB_CONFIG.user,
-      password: DB_CONFIG.password,
-      port: DB_CONFIG.port
-    });
-    
-    await conn.query(`CREATE DATABASE IF NOT EXISTS \`${DB_CONFIG.database}\`;`);
-    await conn.end();
+    try {
+      const conn = await mysql.createConnection({
+        host: DB_CONFIG.host,
+        user: DB_CONFIG.user,
+        password: DB_CONFIG.password,
+        port: DB_CONFIG.port,
+        ssl: DB_CONFIG.ssl
+      });
+      await conn.query(`CREATE DATABASE IF NOT EXISTS \`${DB_CONFIG.database}\`;`);
+      await conn.end();
+    } catch (createDbErr) {
+      console.warn('⚠️ CREATE DATABASE skipped (' + createDbErr.message + '). Attempting direct database connection pool...');
+    }
 
     mysqlPool = mysql.createPool({
       ...DB_CONFIG,
