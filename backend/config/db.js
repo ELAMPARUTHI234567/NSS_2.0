@@ -1,7 +1,7 @@
 const mysql = require('mysql2/promise');
-const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
+let sqlite3 = null;
 
 const DB_CONFIG = {
   host: process.env.DB_HOST || 'localhost',
@@ -87,6 +87,10 @@ async function initializeDatabase() {
   } catch (mysqlErr) {
     console.warn('⚠️ Could not connect to MySQL server (' + mysqlErr.message + '). Falling back to SQLite database for seamless operation.');
     dbMode = 'sqlite';
+
+    if (!sqlite3) {
+      sqlite3 = require('sqlite3').verbose();
+    }
 
     const dbPath = path.join(__dirname, '../nss_database.sqlite');
     sqliteDb = new sqlite3.Database(dbPath);
