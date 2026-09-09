@@ -52,23 +52,7 @@ export default function LoginPage({ setActivePage, setActiveTab }) {
     }
   };
 
-  // Quick Demo Autofill Helper
-  const setDemoUser = (role) => {
-    if (role === 'Student') {
-      setUserIdOrEmail('NSS2026IT001');
-      setPassword('password123');
-    } else if (role === 'PO') {
-      setUserIdOrEmail('NSSPO001');
-      setPassword('password123');
-    } else if (role === 'Admin') {
-      setUserIdOrEmail('NSSADMIN001');
-      setPassword('password123');
-    } else if (role === 'SuperAdmin') {
-      setUserIdOrEmail('NSSSA001');
-      setPassword('password123');
-    }
-    setError('');
-  };
+
 
   const handleOpenForgotModal = () => {
     setResetStep(1);
@@ -250,28 +234,6 @@ export default function LoginPage({ setActivePage, setActiveTab }) {
           <p style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>
             National Service Scheme Management Portal
           </p>
-        </div>
-
-        {/* Demo Quick Login Chips */}
-        <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Sparkles size={14} className="text-amber-500" style={{ color: '#d97706' }} />
-            Quick Demo Autofill Credentials:
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-            <button type="button" onClick={() => setDemoUser('Student')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', background: '#e0f2fe', color: '#0369a1', borderRadius: '0.375rem', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-              Student (NSS2026IT001)
-            </button>
-            <button type="button" onClick={() => setDemoUser('PO')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', background: '#fef3c7', color: '#b45309', borderRadius: '0.375rem', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-              Prog. Officer (NSSPO001)
-            </button>
-            <button type="button" onClick={() => setDemoUser('Admin')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', background: '#dcfce7', color: '#15803d', borderRadius: '0.375rem', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-              Admin (NSSADMIN001)
-            </button>
-            <button type="button" onClick={() => setDemoUser('SuperAdmin')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', background: '#fce7f3', color: '#be185d', borderRadius: '0.375rem', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-              Super Admin (NSSSA001)
-            </button>
-          </div>
         </div>
 
         {error && (
