@@ -1,0 +1,12 @@
+{
+  "name": "nss-management-system",
+  "version": "2.0.0",
+  "description": "NSS College Management System Portal",
+  "scripts": {
+    "start": "npm --prefix backend start",
+    "build": "npm --prefix backend install"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}
