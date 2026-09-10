@@ -27,12 +27,41 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Enable CORS & JSON parsing
-const allowedOrigins = process.env.CORS_ORIGIN || process.env.FRONTEND_URL;
+const configuredOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')
+  .split(',')
+  .map(s => s.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
 app.use(cors({
-  origin: allowedOrigins && allowedOrigins !== '*' 
-    ? allowedOrigins.split(',').map(s => s.trim()) 
-    : '*',
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow non-browser requests (e.g. mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+
+    const cleanOrigin = origin.replace(/\/$/, '');
+
+    // 1. If explicit CORS origins are configured
+    if (configuredOrigins.length > 0) {
+      if (configuredOrigins.includes('*') || configuredOrigins.includes(cleanOrigin)) {
+        return callback(null, cleanOrigin);
+      }
+    }
+
+    // 2. Default allow: Vercel frontend, Render, localhost
+    if (
+      cleanOrigin.endsWith('.vercel.app') ||
+      cleanOrigin.includes('localhost') ||
+      cleanOrigin.includes('127.0.0.1') ||
+      cleanOrigin.endsWith('.onrender.com') ||
+      configuredOrigins.length === 0
+    ) {
+      return callback(null, cleanOrigin);
+    }
+
+    return callback(null, cleanOrigin);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
