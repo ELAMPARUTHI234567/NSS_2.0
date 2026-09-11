@@ -528,6 +528,16 @@ async function initSqliteSchemaAndSeed() {
   }
 }
 
+/**
+ * Helper to check if a string is a valid bcrypt password hash format.
+ */
+function isValidBcryptHash(hashStr) {
+  if (typeof hashStr !== 'string' || hashStr.length < 50 || hashStr.length > 72) {
+    return false;
+  }
+  return /^\$2[abxy]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(hashStr);
+}
+
 async function syncDefaultAccountPasswords() {
   try {
     const bcrypt = require('bcryptjs');
@@ -540,7 +550,14 @@ async function syncDefaultAccountPasswords() {
       { userId: 'NSS2026EC003', email: 'vikram@student.college.edu', role: 'Student' }
     ];
 
-    const freshHash = await bcrypt.hash('Password123', 10);
+    const KNOWN_CORRUPT_HASHES = [
+      '$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2',
+      'Password123',
+      'password123',
+      'admin123'
+    ];
+
+    let defaultSeedHash = null;
     const existingUsers = await query('SELECT id, user_id, email, password FROM users');
 
     const defaultUserIdsLower = defaultAccounts.map(a => a.userId.toLowerCase());
@@ -551,27 +568,31 @@ async function syncDefaultAccountPasswords() {
       const uEmailLower = (u.email || '').trim().toLowerCase();
 
       if (defaultUserIdsLower.includes(uIdLower) || defaultEmailsLower.includes(uEmailLower)) {
-        let isPasswordValid = false;
-        try {
-          isPasswordValid = await bcrypt.compare('Password123', u.password);
-        } catch (e) {
-          isPasswordValid = false;
-        }
+        const storedHash = (u.password || '').trim();
+        const isCorruptOrLegacy = !storedHash || 
+          KNOWN_CORRUPT_HASHES.includes(storedHash) || 
+          !isValidBcryptHash(storedHash);
 
-        if (!isPasswordValid) {
-          console.log(`🔐 Auto-migrating bcrypt password hash for account: ${u.user_id} (ID: ${u.id}) [DB Mode: ${dbMode}]`);
-          await query('UPDATE users SET password = ? WHERE id = ?', [freshHash, u.id]);
+        if (isCorruptOrLegacy) {
+          if (!defaultSeedHash) {
+            defaultSeedHash = await bcrypt.hash('Password123', 10);
+          }
+          console.log(`🔐 Auto-migrating legacy/corrupt seed hash for account: ${u.user_id} (ID: ${u.id}) [DB Mode: ${dbMode}]`);
+          await query('UPDATE users SET password = ? WHERE id = ?', [defaultSeedHash, u.id]);
         }
       }
     }
 
-    // Ensure NSSADMIN001 user exists in users table
+    // Ensure NSSADMIN001 initial default admin user exists if database was initialized empty
     const adminCheck = existingUsers.filter(u => (u.user_id || '').trim().toLowerCase() === 'nssadmin001' || (u.email || '').trim().toLowerCase() === 'admin@college.edu');
     if (adminCheck.length === 0) {
-      console.log(`🌱 Creating missing NSSADMIN001 default admin user in users table [DB Mode: ${dbMode}]...`);
+      if (!defaultSeedHash) {
+        defaultSeedHash = await bcrypt.hash('Password123', 10);
+      }
+      console.log(`🌱 Creating initial default NSSADMIN001 admin account in users table [DB Mode: ${dbMode}]...`);
       await query(
         `INSERT INTO users (user_id, email, password, role, status) VALUES (?, ?, ?, 'Admin', 'Active')`,
-        ['NSSADMIN001', 'admin@college.edu', freshHash]
+        ['NSSADMIN001', 'admin@college.edu', defaultSeedHash]
       );
     }
   } catch (err) {
