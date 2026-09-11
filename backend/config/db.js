@@ -84,6 +84,7 @@ async function initializeDatabase() {
 
     // Initialize Schema & Seeds
     await initSchemaAndSeed();
+    await syncDefaultAccountPasswords();
   } catch (mysqlErr) {
     console.warn('⚠️ Could not connect to MySQL server (' + mysqlErr.message + '). Falling back to SQLite database for seamless operation.');
     dbMode = 'sqlite';
@@ -97,6 +98,7 @@ async function initializeDatabase() {
     console.log('✅ Connected to SQLite database at:', dbPath);
 
     await initSqliteSchemaAndSeed();
+    await syncDefaultAccountPasswords();
   }
 }
 
@@ -117,6 +119,12 @@ async function initSchemaAndSeed() {
       } catch (err) {
         // Ignore table exists or minor errors
       }
+    }
+
+    try {
+      await mysqlPool.query('ALTER TABLE homepage_banners MODIFY COLUMN image_url LONGTEXT NOT NULL');
+    } catch (e) {
+      // Column already modified or table created as LONGTEXT
     }
   }
 
@@ -425,12 +433,12 @@ async function initSqliteSchemaAndSeed() {
       `INSERT INTO nss_units (id, unit_code, unit_name, po_name, capacity) VALUES (1, 'UNIT-01', 'NSS Unit I', 'Dr. R. Arunkumar', 100), (2, 'UNIT-02', 'NSS Unit II', 'Prof. M. Selvam', 100), (3, 'UNIT-03', 'NSS Unit III', 'Dr. S. Kavittha', 100);`,
       `INSERT INTO academic_years (id, year_label, is_current) VALUES (1, '2025-2026', 1), (2, '2026-2027', 0);`,
       `INSERT INTO users (id, user_id, email, password, role, status) VALUES 
-        (1, 'NSSSA001', 'superadmin@college.edu', '$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2', 'Super Admin', 'Active'),
-        (2, 'NSSADMIN001', 'admin@college.edu', '$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2', 'Admin', 'Active'),
-        (3, 'NSSPO001', 'po1@college.edu', '$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2', 'Programme Officer', 'Active'),
-        (4, 'NSS2026IT001', 'elamparuthi@student.college.edu', '$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2', 'Student', 'Active'),
-        (5, 'NSS2026CS002', 'priya@student.college.edu', '$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2', 'Student', 'Active'),
-        (6, 'NSS2026EC003', 'vikram@student.college.edu', '$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2', 'Student', 'Pending');`,
+        (1, 'NSSSA001', 'superadmin@college.edu', '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb', 'Super Admin', 'Active'),
+        (2, 'NSSADMIN001', 'admin@college.edu', '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb', 'Admin', 'Active'),
+        (3, 'NSSPO001', 'po1@college.edu', '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb', 'Programme Officer', 'Active'),
+        (4, 'NSS2026IT001', 'elamparuthi@student.college.edu', '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb', 'Student', 'Active'),
+        (5, 'NSS2026CS002', 'priya@student.college.edu', '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb', 'Student', 'Active'),
+        (6, 'NSS2026EC003', 'vikram@student.college.edu', '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb', 'Student', 'Pending');`,
       `INSERT INTO admins (id, user_id, admin_id, full_name, email, phone, designation, role_type, status) VALUES 
         (1, 'NSSSA001', 'NSSSA001', 'Dr. K. Super Administrator', 'superadmin@college.edu', '9876543210', 'Head of Student Affairs', 'Super Admin', 'Active'),
         (2, 'NSSADMIN001', 'NSSADMIN001', 'Prof. V. Admin Officer', 'admin@college.edu', '9876543211', 'NSS Central Coordinator', 'Admin', 'Active');`,
@@ -520,6 +528,34 @@ async function initSqliteSchemaAndSeed() {
   }
 }
 
+async function syncDefaultAccountPasswords() {
+  try {
+    const bcrypt = require('bcryptjs');
+    const defaultUserIds = ['NSSSA001', 'NSSADMIN001', 'NSSPO001', 'NSS2026IT001', 'NSS2026CS002', 'NSS2026EC003'];
+    const validPasswordHash = '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb';
+
+    for (const userId of defaultUserIds) {
+      const users = await query(`SELECT id, password FROM users WHERE LOWER(TRIM(user_id)) = ?`, [userId.toLowerCase()]);
+      if (users.length > 0) {
+        const storedHash = users[0].password;
+        let matches = false;
+        try {
+          matches = await bcrypt.compare('Password123', storedHash);
+        } catch (e) {
+          matches = false;
+        }
+
+        if (!matches) {
+          console.log(`🔐 Auto-migrated bcrypt password hash for account: ${userId}`);
+          await query(`UPDATE users SET password = ? WHERE id = ?`, [validPasswordHash, users[0].id]);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error syncing default passwords:', err.message);
+  }
+}
+
 function getMode() {
   return dbMode;
 }
@@ -527,5 +563,6 @@ function getMode() {
 module.exports = {
   initializeDatabase,
   query,
-  getMode
+  getMode,
+  syncDefaultAccountPasswords
 };

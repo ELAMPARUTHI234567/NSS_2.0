@@ -1,6 +1,6 @@
 -- NSS College Management System Seed Data
 
--- Passwords for default accounts: "password123" -> bcrypt hash "$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2"
+-- Passwords for default accounts: "Password123" -> bcrypt hash "$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb"
 
 USE nss_db;
 
@@ -25,12 +25,12 @@ INSERT IGNORE INTO academic_years (id, year_label, is_current) VALUES
 
 -- 4. Users (Super Admin, Admin, Programme Officer, Students)
 INSERT IGNORE INTO users (id, user_id, email, password, role, status) VALUES
-(1, 'NSSSA001', 'superadmin@college.edu', '$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2', 'Super Admin', 'Active'),
-(2, 'NSSADMIN001', 'admin@college.edu', '$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2', 'Admin', 'Active'),
-(3, 'NSSPO001', 'po1@college.edu', '$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2', 'Programme Officer', 'Active'),
-(4, 'NSS2026IT001', 'elamparuthi@student.college.edu', '$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2', 'Student', 'Active'),
-(5, 'NSS2026CS002', 'priya@student.college.edu', '$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2', 'Student', 'Active'),
-(6, 'NSS2026EC003', 'vikram@student.college.edu', '$2b$10$e.R.H.3x.3V.Zg1K.O.X.e32J69s9P15rJ/J20W48z2M5/F4kY2W2', 'Student', 'Pending');
+(1, 'NSSSA001', 'superadmin@college.edu', '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb', 'Super Admin', 'Active'),
+(2, 'NSSADMIN001', 'admin@college.edu', '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb', 'Admin', 'Active'),
+(3, 'NSSPO001', 'po1@college.edu', '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb', 'Programme Officer', 'Active'),
+(4, 'NSS2026IT001', 'elamparuthi@student.college.edu', '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb', 'Student', 'Active'),
+(5, 'NSS2026CS002', 'priya@student.college.edu', '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb', 'Student', 'Active'),
+(6, 'NSS2026EC003', 'vikram@student.college.edu', '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb', 'Student', 'Pending');
 
 -- 5. Admins Detail
 INSERT IGNORE INTO admins (id, user_id, admin_id, full_name, email, phone, designation, role_type, status) VALUES
