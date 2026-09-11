@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jsonwebtoken = require('jsonwebtoken');
 const { query } = require('../config/db');
 const { JWT_SECRET, verifyToken } = require('../middleware/auth');
+const { sendOtpEmail } = require('../config/mailer');
 
 // Helper to record activity log
 async function logActivity(userId, userName, role, action, module, req) {
@@ -312,10 +313,16 @@ router.post('/forgot-password/request', async (req, res) => {
       ? (emailParts[0].length > 3 ? emailParts[0].substring(0, 3) + '***' : emailParts[0] + '***') + '@' + emailParts[1]
       : '***@college.edu';
 
+    // Send OTP email
+    const recipientName = user.full_name || user.name || user.user_id;
+    if (displayEmail) {
+      await sendOtpEmail(displayEmail, recipientName, generatedOtp);
+    }
+
     // Store notification record
     await query(
       `INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'info')`,
-      [user.user_id, 'Password Reset OTP Request', `Your OTP verification code for password reset is ${generatedOtp}. Valid for 10 minutes.`]
+      [user.user_id, 'Password Reset OTP Request', `Your OTP verification code for password reset was sent. Valid for 10 minutes.`]
     );
 
     await logActivity(user.user_id, user.user_id, user.role, 'Requested password reset OTP', 'Authentication', req);
@@ -325,10 +332,8 @@ router.post('/forgot-password/request', async (req, res) => {
       user_id: user.user_id,
       email: displayEmail,
       maskedEmail,
-      otpPreview: process.env.NODE_ENV === 'production' ? undefined : generatedOtp,
-      message: process.env.NODE_ENV === 'production'
-        ? `Account verified for ${user.user_id}. A 6-digit OTP code has been generated.`
-        : `Account verified for ${user.user_id}. A 6-digit OTP code has been generated.`
+      otpPreview: (process.env.NODE_ENV === 'production' || process.env.SMTP_PASSWORD) ? undefined : generatedOtp,
+      message: `Account verified for ${user.user_id}. A 6-digit OTP code has been sent to ${maskedEmail}.`
     });
   } catch (err) {
     console.error('Request OTP error:', err);
@@ -475,13 +480,19 @@ router.post('/forgot-password', async (req, res) => {
       ? (emailParts[0].length > 3 ? emailParts[0].substring(0, 3) + '***' : emailParts[0] + '***') + '@' + emailParts[1]
       : '***@college.edu';
 
+    // Send OTP email
+    const recipientName = user.full_name || user.name || user.user_id;
+    if (displayEmail) {
+      await sendOtpEmail(displayEmail, recipientName, generatedOtp);
+    }
+
     res.json({
       success: true,
       user_id: user.user_id,
       email: displayEmail,
       maskedEmail,
-      otpPreview: process.env.NODE_ENV === 'production' ? undefined : generatedOtp,
-      message: `Account verified for ${user.user_id}. Please enter your OTP code and new password to complete reset.`
+      otpPreview: (process.env.NODE_ENV === 'production' || process.env.SMTP_PASSWORD) ? undefined : generatedOtp,
+      message: `Account verified for ${user.user_id}. Please enter your OTP code sent to ${maskedEmail} and your new password to complete reset.`
     });
   } catch (err) {
     console.error('Forgot password error:', err);
@@ -489,5 +500,6 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
+router.otpStore = otpStore;
 module.exports = router;
 
