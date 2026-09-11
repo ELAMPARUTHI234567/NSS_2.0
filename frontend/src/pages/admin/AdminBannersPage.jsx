@@ -88,14 +88,14 @@ export default function AdminBannersPage() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate File Format
+    // Validate File Format (JPG, JPEG, PNG, WEBP)
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type.toLowerCase())) {
       setError('Invalid file format. Please upload a JPG, JPEG, PNG, or WEBP photo.');
       return;
     }
 
-    // Validate File Size (5 MB limit)
+    // Validate File Size (Maximum 5 MB)
     if (file.size > 5 * 1024 * 1024) {
       setError('File size exceeds maximum limit of 5 MB. Please select a smaller photo.');
       return;
@@ -109,7 +109,7 @@ export default function AdminBannersPage() {
     const formattedSize = file.size >= 1024 * 1024 ? `${sizeMb} MB` : `${sizeKb} KB`;
     setFileInfo({ name: file.name, size: formattedSize });
 
-    // Generate local preview
+    // Generate local Data URI preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result);
@@ -167,7 +167,7 @@ export default function AdminBannersPage() {
     }
 
     if (!imagePreview && !selectedFile && !formData.image_url) {
-      setError('Please upload an image photo for the banner.');
+      setError('Please select an image photo for the banner.');
       return;
     }
 
@@ -177,7 +177,7 @@ export default function AdminBannersPage() {
     try {
       let finalImageUrl = formData.image_url;
 
-      // Upload file if new file picked
+      // Upload file via FormData to backend POST /api/banners/upload
       if (selectedFile) {
         const uploadData = new FormData();
         uploadData.append('image', selectedFile);
@@ -187,7 +187,7 @@ export default function AdminBannersPage() {
             finalImageUrl = uploadRes.image_url;
           }
         } catch (uploadErr) {
-          // Fallback to sending base64 preview if multipart upload endpoint has issue
+          // Fallback to Data URI if multipart response has issue
           finalImageUrl = imagePreview;
         }
       } else if (imagePreview) {
@@ -272,7 +272,7 @@ export default function AdminBannersPage() {
                   src={banner.image_url}
                   alt={banner.title}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&auto=format&fit=crop&q=80'; }}
+                  onError={(e) => { e.target.style.opacity = '0.3'; }}
                 />
                 <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', background: '#1e3a8a', color: 'white', padding: '0.25rem 0.65rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 800 }}>
                   Order #{banner.display_order}
@@ -388,10 +388,10 @@ export default function AdminBannersPage() {
               />
             </div>
 
-            {/* UPLOAD IMAGE SECTION (REPLACES IMAGE URL FIELD) */}
+            {/* DIRECT PHOTO UPLOAD SECTION */}
             <div>
               <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '0.35rem' }}>
-                Upload Image *
+                Banner Image *
               </label>
 
               <input
@@ -418,26 +418,29 @@ export default function AdminBannersPage() {
                   onMouseOut={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
                 >
                   <UploadCloud size={36} style={{ color: '#1e3a8a', margin: '0 auto 0.75rem auto' }} />
-                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
-                    [ Choose Photo ]
+                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '1rem', marginBottom: '0.5rem' }}>
+                    [ 📷 Choose Photo ]
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
-                    Click to select photo from your computer (JPG, JPEG, PNG, WEBP - Max 5 MB)
+                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    Supported formats: JPG, JPEG, PNG, WEBP
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem' }}>
+                    Maximum size: 5 MB
                   </div>
                 </div>
               ) : (
                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '1rem' }}>
-                  <div style={{ position: 'relative', borderRadius: '0.5rem', overflow: 'hidden', height: '160px', background: '#0f172a', marginBottom: '0.75rem' }}>
+                  <div style={{ position: 'relative', borderRadius: '0.5rem', overflow: 'hidden', height: '180px', background: '#0f172a', marginBottom: '0.75rem' }}>
                     <img
                       src={imagePreview}
                       alt="Banner Preview"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&auto=format&fit=crop&q=80'; }}
+                      onError={(e) => { e.target.style.opacity = '0.3'; }}
                     />
                   </div>
 
                   {fileInfo && (
-                    <div style={{ fontSize: '0.8rem', color: '#475569', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', background: '#ffffff', padding: '0.45rem 0.75rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#475569', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', background: '#ffffff', padding: '0.5rem 0.75rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1' }}>
                       <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
                         📷 {fileInfo.name}
                       </span>
