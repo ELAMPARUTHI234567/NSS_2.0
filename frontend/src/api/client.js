@@ -1,4 +1,4 @@
-﻿// ─── NSS 2.0 API Client ──────────────────────────────────────────────────────
+// ─── NSS 2.0 API Client ──────────────────────────────────────────────────────
 // Reads VITE_API_URL at build time (injected by Vite from .env or Vercel env vars).
 // If not set, defaults to the production Render backend so the build still works.
 // Local dev: set VITE_API_URL=http://localhost:5000/api in .env
@@ -7,6 +7,11 @@
 function buildFullUrl(endpoint) {
   // Default to production backend if VITE_API_URL is not set
   let baseUrl = (import.meta.env.VITE_API_URL || 'https://nss-2-0.onrender.com/api').trim();
+
+  // Safety check: force production Render URL in production builds if localhost was baked in by mistake
+  if (import.meta.env.PROD && baseUrl.includes('localhost')) {
+    baseUrl = 'https://nss-2-0.onrender.com/api';
+  }
 
   // Strip trailing slashes
   while (baseUrl.endsWith('/')) {
@@ -21,8 +26,10 @@ function buildFullUrl(endpoint) {
   // Ensure endpoint starts with /
   let cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
 
-  // If cleanEndpoint starts with /api/, strip the leading /api to prevent /api/api/...
-  if (cleanEndpoint.startsWith('/api/')) {
+  // If cleanEndpoint is /api or starts with /api/, strip leading /api to prevent /api/api/...
+  if (cleanEndpoint === '/api') {
+    cleanEndpoint = '';
+  } else if (cleanEndpoint.startsWith('/api/')) {
     cleanEndpoint = cleanEndpoint.substring(4);
   }
 
