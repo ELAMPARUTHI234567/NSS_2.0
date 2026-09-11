@@ -24,38 +24,42 @@ export default function NotificationBell() {
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', zIndex: 10 }}>
       <button
         onClick={() => setOpen(!open)}
+        title="Notifications"
         style={{
           position: 'relative',
-          padding: '0.5rem',
+          width: '36px',
+          height: '36px',
           borderRadius: '50%',
-          background: 'rgba(255,255,255,0.1)',
+          background: 'rgba(255, 255, 255, 0.15)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.25)',
           color: 'white',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
         }}
       >
-        <Bell size={20} />
-        {unreadCount > 0 && (
-          <span
-            style={{
-              position: 'absolute',
-              top: '-2px',
-              right: '-2px',
-              background: '#ef4444',
-              color: 'white',
-              fontSize: '0.7rem',
-              fontWeight: 'bold',
-              borderRadius: '9999px',
-              padding: '0.1rem 0.35rem'
-            }}
-          >
-            {unreadCount}
-          </span>
-        )}
+        <Bell size={18} />
+        <span
+          style={{
+            position: 'absolute',
+            top: '3px',
+            right: '3px',
+            width: '8px',
+            height: '8px',
+            background: '#ef4444',
+            borderRadius: '50%',
+            border: '1.5px solid #063a70',
+            boxShadow: '0 0 6px rgba(239, 68, 68, 0.9)'
+          }}
+        />
       </button>
 
       {open && (
