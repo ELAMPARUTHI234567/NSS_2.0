@@ -14,12 +14,12 @@ export default function Navbar({ activePage, setActivePage }) {
 
   const navItems = [
     { id: 'home', label: 'HOME' },
-    { id: 'about', label: 'ORGANISATION' },
+    { id: 'organisation', label: 'ORGANISATION' },
     { id: 'activities', label: 'ACTIVITIES' },
     { id: 'public-events', label: 'EVENTS' },
     { id: 'public-announcements', label: 'ANNOUNCEMENTS' },
     { id: 'public-gallery', label: 'GALLERY' },
-    { id: 'contact', label: 'VOLUNTEERS' },
+    { id: 'volunteers', label: 'VOLUNTEERS' },
     { id: 'about', label: 'ABOUT' },
     { id: 'contact', label: 'CONTACT' }
   ];
@@ -49,19 +49,12 @@ export default function Navbar({ activePage, setActivePage }) {
 
         {/* Desktop Navigation Links */}
         <nav className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'nowrap' }}>
-          {navItems.map((item, index) => {
-            // Determine active highlight strictly
-            const isActive = activePage === item.id && (
-              (item.label === 'ABOUT' && activePage === 'about') ||
-              (item.label === 'CONTACT' && activePage === 'contact') ||
-              (item.label === 'ORGANISATION' && activePage === 'about') ||
-              (item.label === 'VOLUNTEERS' && activePage === 'contact') ||
-              (activePage === item.id && item.label !== 'ABOUT' && item.label !== 'CONTACT')
-            );
+          {navItems.map((item) => {
+            const isActive = activePage === item.id;
 
             return (
               <button
-                key={`${item.id}-${index}`}
+                key={item.id}
                 className={`nav-link ${isActive ? 'active' : ''}`}
                 onClick={() => handleNavClick(item.id)}
                 style={{
@@ -148,9 +141,9 @@ export default function Navbar({ activePage, setActivePage }) {
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
         <div style={{ background: '#0f2b5c', borderTop: '1px solid rgba(255,255,255,0.1)', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {navItems.map((item, index) => (
+          {navItems.map((item) => (
             <button
-              key={`mobile-${item.id}-${index}`}
+              key={`mobile-${item.id}`}
               className={`nav-link ${activePage === item.id ? 'active' : ''}`}
               onClick={() => handleNavClick(item.id)}
               style={{ textAlign: 'left', padding: '0.5rem 0.75rem' }}

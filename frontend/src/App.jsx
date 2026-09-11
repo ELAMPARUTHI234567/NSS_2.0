@@ -104,12 +104,12 @@ function AppContent() {
       ) : (
         <main style={{ flex: 1 }}>
           {activePage === 'home' && <HomePage setActivePage={setActivePage} />}
-          {activePage === 'about' && <AboutPage />}
+          {(activePage === 'about' || activePage === 'organisation') && <AboutPage />}
           {activePage === 'activities' && <ActivitiesPage />}
           {activePage === 'public-events' && <PublicEventsPage setActivePage={setActivePage} />}
           {activePage === 'public-announcements' && <PublicAnnouncementsPage />}
           {activePage === 'public-gallery' && <PublicGalleryPage />}
-          {activePage === 'contact' && <ContactPage />}
+          {(activePage === 'contact' || activePage === 'volunteers') && <ContactPage />}
           {activePage === 'register' && <RegisterPage setActivePage={setActivePage} />}
           {activePage === 'login' && <LoginPage setActivePage={setActivePage} setActiveTab={setActiveTab} />}
           {activePage === 'dashboard' && renderDashboardContent()}
