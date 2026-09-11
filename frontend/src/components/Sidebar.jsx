@@ -49,55 +49,46 @@ export default function Sidebar({ activeTab, setActiveTab }) {
 
   return (
     <aside className="sidebar">
-      {/* User Avatar Circle */}
-      <div className="sidebar-avatar-container">
+      {/* User Information Card */}
+      <div className="sidebar-user-card">
         <div className="sidebar-avatar">
           {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
         </div>
-        <div className="sidebar-tooltip">
-          <div style={{ fontWeight: 800 }}>{user.name || user.user_id}</div>
-          <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 500 }}>{role}</div>
+        <div className="sidebar-user-info">
+          <div className="user-name">{user.name || user.user_id}</div>
+          <div className="user-role">{role}</div>
         </div>
       </div>
 
-      {/* Main Navigation Menu */}
+      {/* Main Navigation Items */}
       <div className="sidebar-menu">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
-            <div key={item.id} className="sidebar-item-wrapper">
-              <button
-                type="button"
-                onClick={() => setActiveTab(item.id)}
-                className={`sidebar-item-btn ${isActive ? 'active' : ''}`}
-                aria-label={item.label}
-              >
-                <Icon size={20} />
-              </button>
-              <div className="sidebar-tooltip">
-                {item.label}
-              </div>
-            </div>
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setActiveTab(item.id)}
+              className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+            >
+              <Icon size={19} className="sidebar-nav-icon" />
+              <span className="sidebar-nav-label">{item.label}</span>
+            </button>
           );
         })}
       </div>
 
       {/* Logout Action at Bottom */}
-      <div style={{ width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem', marginTop: 'auto' }}>
-        <div className="sidebar-item-wrapper">
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="sidebar-item-btn logout-btn"
-            aria-label="Logout"
-          >
-            <LogOut size={20} />
-          </button>
-          <div className="sidebar-tooltip">
-            Logout
-          </div>
-        </div>
+      <div className="sidebar-footer">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="sidebar-nav-item logout-btn"
+        >
+          <LogOut size={19} className="sidebar-nav-icon" />
+          <span className="sidebar-nav-label">Logout</span>
+        </button>
       </div>
     </aside>
   );
