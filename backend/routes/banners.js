@@ -3,6 +3,23 @@ const router = express.Router();
 const { query } = require('../config/db');
 const { verifyToken, checkRole } = require('../middleware/auth');
 
+const multer = require('multer');
+
+// Configure Multer storage in memory for converting uploaded photos into persistent Data URIs
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (allowed.includes(file.mimetype.toLowerCase())) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid image format. Only JPG, JPEG, PNG, and WEBP photos are allowed.'));
+    }
+  }
+});
+
 // Helper to log administrative actions
 async function logActivity(userId, userName, role, action, module = 'Banner Management', req = null) {
   try {
@@ -34,6 +51,36 @@ router.get('/', async (req, res) => {
     console.error('Get banners error:', err);
     res.status(500).json({ success: false, message: 'Failed to retrieve banners: ' + err.message });
   }
+});
+
+// 2. UPLOAD BANNER PHOTO (Admin / Super Admin Only)
+router.post('/upload', verifyToken, checkRole(['Admin', 'Super Admin']), (req, res) => {
+  upload.single('image')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ success: false, message: 'File upload error: ' + err.message });
+    } else if (err) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image photo file selected.' });
+    }
+
+    try {
+      const mimeType = req.file.mimetype;
+      const base64Data = req.file.buffer.toString('base64');
+      const dataUri = `data:${mimeType};base64,${base64Data}`;
+
+      res.json({
+        success: true,
+        image_url: dataUri,
+        message: 'Banner photo uploaded successfully.'
+      });
+    } catch (processErr) {
+      console.error('Process uploaded photo error:', processErr);
+      res.status(500).json({ success: false, message: 'Failed to process uploaded photo.' });
+    }
+  });
 });
 
 // 2. CREATE NEW BANNER (Admin / Super Admin Only)

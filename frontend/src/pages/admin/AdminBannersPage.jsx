@@ -1,13 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api/client';
 import Modal from '../../components/Modal';
-import { Plus, Edit2, Trash2, Eye, EyeOff, Image as ImageIcon, ArrowUp, ArrowDown, Check, RefreshCw } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, EyeOff, Image as ImageIcon, UploadCloud, X, Check, RefreshCw } from 'lucide-react';
 
 export default function AdminBannersPage() {
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
+
+  const fileInputRef = useRef(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [fileInfo, setFileInfo] = useState(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -45,6 +50,8 @@ export default function AdminBannersPage() {
   const handleOpenModal = (banner = null) => {
     setError('');
     setSuccess('');
+    setSelectedFile(null);
+
     if (banner) {
       setEditingBanner(banner);
       setFormData({
@@ -57,6 +64,8 @@ export default function AdminBannersPage() {
         display_order: banner.display_order || 1,
         is_active: banner.is_active ? 1 : 0
       });
+      setImagePreview(banner.image_url || '');
+      setFileInfo(banner.image_url ? { name: 'Current Banner Photo', size: '' } : null);
     } else {
       setEditingBanner(null);
       setFormData({
@@ -69,8 +78,59 @@ export default function AdminBannersPage() {
         display_order: (banners.length + 1),
         is_active: 1
       });
+      setImagePreview('');
+      setFileInfo(null);
     }
     setIsModalOpen(true);
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate File Format
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      setError('Invalid file format. Please upload a JPG, JPEG, PNG, or WEBP photo.');
+      return;
+    }
+
+    // Validate File Size (5 MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size exceeds maximum limit of 5 MB. Please select a smaller photo.');
+      return;
+    }
+
+    setError('');
+    setSelectedFile(file);
+
+    const sizeKb = (file.size / 1024).toFixed(1);
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+    const formattedSize = file.size >= 1024 * 1024 ? `${sizeMb} MB` : `${sizeKb} KB`;
+    setFileInfo({ name: file.name, size: formattedSize });
+
+    // Generate local preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedFile(null);
+    setImagePreview('');
+    setFileInfo(null);
+    setFormData((prev) => ({ ...prev, image_url: '' }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleChangeImage = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   const handleToggleStatus = async (banner) => {
@@ -101,23 +161,53 @@ export default function AdminBannersPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.title || !formData.image_url) {
-      setError('Banner Title and Image URL are required.');
+    if (!formData.title.trim()) {
+      setError('Banner Title is required.');
+      return;
+    }
+
+    if (!imagePreview && !selectedFile && !formData.image_url) {
+      setError('Please upload an image photo for the banner.');
       return;
     }
 
     setSaving(true);
     setError('');
+
     try {
+      let finalImageUrl = formData.image_url;
+
+      // Upload file if new file picked
+      if (selectedFile) {
+        const uploadData = new FormData();
+        uploadData.append('image', selectedFile);
+        try {
+          const uploadRes = await api.post('/banners/upload', uploadData);
+          if (uploadRes.success && uploadRes.image_url) {
+            finalImageUrl = uploadRes.image_url;
+          }
+        } catch (uploadErr) {
+          // Fallback to sending base64 preview if multipart upload endpoint has issue
+          finalImageUrl = imagePreview;
+        }
+      } else if (imagePreview) {
+        finalImageUrl = imagePreview;
+      }
+
+      const payload = {
+        ...formData,
+        image_url: finalImageUrl
+      };
+
       if (editingBanner) {
-        const res = await api.put(`/banners/admin/${editingBanner.id}`, formData);
+        const res = await api.put(`/banners/admin/${editingBanner.id}`, payload);
         if (res.success) {
           setSuccess('Homepage banner updated successfully!');
           setIsModalOpen(false);
           fetchBanners();
         }
       } else {
-        const res = await api.post('/banners/admin', formData);
+        const res = await api.post('/banners/admin', payload);
         if (res.success) {
           setSuccess('New homepage banner created successfully!');
           setIsModalOpen(false);
@@ -138,7 +228,7 @@ export default function AdminBannersPage() {
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a' }}>Homepage Banner Management</h1>
           <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Manage and reorder automatic hero activity slides displayed on the public NSS homepage.
+            Upload, manage, and reorder automatic hero activity slides displayed on the public NSS homepage.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -170,11 +260,11 @@ export default function AdminBannersPage() {
         <div className="card" style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
           <ImageIcon size={48} style={{ margin: '0 auto 1rem auto', opacity: 0.5 }} />
           <h3>No Banners Created Yet</h3>
-          <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Click "Add New Banner" above to create hero slides for the public website.</p>
+          <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Click "Add New Banner" above to upload hero slides for the public website.</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
-          {banners.map((banner, index) => (
+          {banners.map((banner) => (
             <div key={banner.id} className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', border: banner.is_active ? '1px solid #cbd5e1' : '1px dashed #cbd5e1', opacity: banner.is_active ? 1 : 0.75 }}>
               {/* Banner Image Preview */}
               <div style={{ position: 'relative', height: '180px', background: '#0f172a' }}>
@@ -298,18 +388,86 @@ export default function AdminBannersPage() {
               />
             </div>
 
+            {/* UPLOAD IMAGE SECTION (REPLACES IMAGE URL FIELD) */}
             <div>
               <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '0.35rem' }}>
-                Banner Image URL *
+                Upload Image *
               </label>
+
               <input
-                type="url"
-                className="input-field"
-                placeholder="https://images.unsplash.com/photo-..."
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                required
+                type="file"
+                ref={fileInputRef}
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
               />
+
+              {!imagePreview ? (
+                <div
+                  onClick={handleChangeImage}
+                  style={{
+                    border: '2px dashed #cbd5e1',
+                    borderRadius: '0.75rem',
+                    padding: '2rem 1.5rem',
+                    textAlign: 'center',
+                    background: '#f8fafc',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                  onMouseOver={(e) => (e.currentTarget.style.borderColor = '#1e3a8a')}
+                  onMouseOut={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
+                >
+                  <UploadCloud size={36} style={{ color: '#1e3a8a', margin: '0 auto 0.75rem auto' }} />
+                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
+                    [ Choose Photo ]
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+                    Click to select photo from your computer (JPG, JPEG, PNG, WEBP - Max 5 MB)
+                  </div>
+                </div>
+              ) : (
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '1rem' }}>
+                  <div style={{ position: 'relative', borderRadius: '0.5rem', overflow: 'hidden', height: '160px', background: '#0f172a', marginBottom: '0.75rem' }}>
+                    <img
+                      src={imagePreview}
+                      alt="Banner Preview"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&auto=format&fit=crop&q=80'; }}
+                    />
+                  </div>
+
+                  {fileInfo && (
+                    <div style={{ fontSize: '0.8rem', color: '#475569', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', background: '#ffffff', padding: '0.45rem 0.75rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1' }}>
+                      <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+                        📷 {fileInfo.name}
+                      </span>
+                      {fileInfo.size && (
+                        <span style={{ fontWeight: 700, color: '#1e3a8a', marginLeft: '0.5rem' }}>
+                          {fileInfo.size}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={handleChangeImage}
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', fontSize: '0.85rem' }}
+                    >
+                      <UploadCloud size={14} /> [ Change Image ]
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '0.375rem', padding: '0.5rem 0.85rem', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      <X size={14} /> [ Remove Image ]
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -353,14 +511,14 @@ export default function AdminBannersPage() {
             </div>
 
             {/* Live Banner Preview Box */}
-            {formData.image_url && (
+            {imagePreview && (
               <div style={{ background: '#0f172a', borderRadius: '0.75rem', padding: '1.25rem', color: 'white', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', inset: 0, opacity: 0.45 }}>
-                  <img src={formData.image_url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div style={{ position: 'relative', zIndex: 2 }}>
                   <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', background: '#d97706', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontWeight: 800 }}>
-                    Live Preview
+                    Live Homepage Preview
                   </span>
                   <h4 style={{ fontSize: '1.2rem', fontWeight: 800, marginTop: '0.5rem' }}>{formData.title || 'Banner Title'}</h4>
                   <p style={{ fontSize: '0.8rem', color: '#e2e8f0', margin: '0.25rem 0 0.75rem 0' }}>{formData.description || 'Banner Description'}</p>
@@ -376,7 +534,7 @@ export default function AdminBannersPage() {
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary" style={{ background: '#1e3a8a' }} disabled={saving}>
-                {saving ? 'Saving...' : editingBanner ? 'Save Changes' : 'Create Banner'}
+                {saving ? 'Saving Banner...' : editingBanner ? 'Save Changes' : 'Create Banner'}
               </button>
             </div>
           </form>
