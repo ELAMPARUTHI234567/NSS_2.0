@@ -531,25 +531,48 @@ async function initSqliteSchemaAndSeed() {
 async function syncDefaultAccountPasswords() {
   try {
     const bcrypt = require('bcryptjs');
-    const defaultUserIds = ['NSSSA001', 'NSSADMIN001', 'NSSPO001', 'NSS2026IT001', 'NSS2026CS002', 'NSS2026EC003'];
-    const validPasswordHash = '$2b$10$05bR8nS1DSzEhIMTh4R1bcd9re.1bRCUPCbm6iI0padtPayb';
+    const defaultAccounts = [
+      { userId: 'NSSSA001', email: 'superadmin@college.edu', role: 'Super Admin' },
+      { userId: 'NSSADMIN001', email: 'admin@college.edu', role: 'Admin' },
+      { userId: 'NSSPO001', email: 'po1@college.edu', role: 'Programme Officer' },
+      { userId: 'NSS2026IT001', email: 'elamparuthi@student.college.edu', role: 'Student' },
+      { userId: 'NSS2026CS002', email: 'priya@student.college.edu', role: 'Student' },
+      { userId: 'NSS2026EC003', email: 'vikram@student.college.edu', role: 'Student' }
+    ];
 
-    for (const userId of defaultUserIds) {
-      const users = await query(`SELECT id, password FROM users WHERE LOWER(TRIM(user_id)) = ?`, [userId.toLowerCase()]);
-      if (users.length > 0) {
-        const storedHash = users[0].password;
-        let matches = false;
+    const freshHash = await bcrypt.hash('Password123', 10);
+    const existingUsers = await query('SELECT id, user_id, email, password FROM users');
+
+    const defaultUserIdsLower = defaultAccounts.map(a => a.userId.toLowerCase());
+    const defaultEmailsLower = defaultAccounts.map(a => a.email.toLowerCase());
+
+    for (const u of existingUsers) {
+      const uIdLower = (u.user_id || '').trim().toLowerCase();
+      const uEmailLower = (u.email || '').trim().toLowerCase();
+
+      if (defaultUserIdsLower.includes(uIdLower) || defaultEmailsLower.includes(uEmailLower)) {
+        let isPasswordValid = false;
         try {
-          matches = await bcrypt.compare('Password123', storedHash);
+          isPasswordValid = await bcrypt.compare('Password123', u.password);
         } catch (e) {
-          matches = false;
+          isPasswordValid = false;
         }
 
-        if (!matches) {
-          console.log(`🔐 Auto-migrated bcrypt password hash for account: ${userId}`);
-          await query(`UPDATE users SET password = ? WHERE id = ?`, [validPasswordHash, users[0].id]);
+        if (!isPasswordValid) {
+          console.log(`🔐 Auto-migrating bcrypt password hash for account: ${u.user_id} (ID: ${u.id}) [DB Mode: ${dbMode}]`);
+          await query('UPDATE users SET password = ? WHERE id = ?', [freshHash, u.id]);
         }
       }
+    }
+
+    // Ensure NSSADMIN001 user exists in users table
+    const adminCheck = existingUsers.filter(u => (u.user_id || '').trim().toLowerCase() === 'nssadmin001' || (u.email || '').trim().toLowerCase() === 'admin@college.edu');
+    if (adminCheck.length === 0) {
+      console.log(`🌱 Creating missing NSSADMIN001 default admin user in users table [DB Mode: ${dbMode}]...`);
+      await query(
+        `INSERT INTO users (user_id, email, password, role, status) VALUES (?, ?, ?, 'Admin', 'Active')`,
+        ['NSSADMIN001', 'admin@college.edu', freshHash]
+      );
     }
   } catch (err) {
     console.error('Error syncing default passwords:', err.message);
