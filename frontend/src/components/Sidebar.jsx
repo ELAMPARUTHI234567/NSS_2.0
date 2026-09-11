@@ -2,11 +2,11 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, User, Edit3, Calendar, CheckSquare, Award, FileText, Bell,
-  Users, UserCheck, Info, Megaphone, Image as ImageIcon, BarChart3, Clock, Settings, ShieldAlert
+  Users, UserCheck, Info, Megaphone, Image as ImageIcon, BarChart3, Clock, Settings, LogOut
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   if (!user) return null;
 
   const role = user.role;
@@ -23,70 +23,81 @@ export default function Sidebar({ activeTab, setActiveTab }) {
   ];
 
   const adminMenuItems = [
-    { id: 'admin-dashboard', label: 'Admin Dashboard', icon: LayoutDashboard },
-    { id: 'admin-students', label: 'Students', icon: Users },
+    { id: 'admin-dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'admin-students', label: 'Students / Volunteers', icon: Users },
     { id: 'admin-users', label: 'Users & Roles', icon: UserCheck },
-    { id: 'admin-events', label: 'Event Management', icon: Calendar },
-    { id: 'admin-attendance', label: 'Mark Attendance', icon: CheckSquare },
+    { id: 'admin-events', label: 'Events', icon: Calendar },
+    { id: 'admin-attendance', label: 'Attendance', icon: CheckSquare },
     { id: 'admin-nss-info', label: 'NSS Information', icon: Info },
     { id: 'admin-announcements', label: 'Announcements', icon: Megaphone },
     { id: 'admin-certificates', label: 'Certificates', icon: FileText },
     { id: 'admin-achievements', label: 'Achievements', icon: Award },
     { id: 'admin-banners', label: 'Banner Management', icon: ImageIcon },
     { id: 'admin-gallery', label: 'Gallery', icon: ImageIcon },
-    { id: 'admin-reports', label: 'Reports & Export', icon: BarChart3 },
+    { id: 'admin-reports', label: 'Reports', icon: BarChart3 },
     { id: 'admin-activity-logs', label: 'Activity Logs', icon: Clock },
-    { id: 'admin-settings', label: 'System Settings', icon: Settings },
+    { id: 'admin-settings', label: 'Settings', icon: Settings },
   ];
 
   const items = role === 'Student' ? studentMenuItems : adminMenuItems;
 
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to log out?')) {
+      logout();
+    }
+  };
+
   return (
     <aside className="sidebar">
-      <div className="sidebar-header">
-        <div
-          style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontWeight: 'bold'
-          }}
-        >
+      {/* User Avatar Circle */}
+      <div className="sidebar-avatar-container">
+        <div className="sidebar-avatar">
           {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
         </div>
-        <div>
-          <h4 style={{ color: 'white', fontSize: '0.85rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>
-            {user.name}
-          </h4>
-          <span style={{ fontSize: '0.7rem', color: '#38bdf8', fontWeight: 600 }}>
-            {user.nss_id || user.user_id}
-          </span>
+        <div className="sidebar-tooltip">
+          <div style={{ fontWeight: 800 }}>{user.name || user.user_id}</div>
+          <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 500 }}>{role}</div>
         </div>
       </div>
 
+      {/* Main Navigation Menu */}
       <div className="sidebar-menu">
-        <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.5px' }}>
-          {role} Navigation
-        </div>
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`sidebar-item ${isActive ? 'active' : ''}`}
-            >
-              <Icon size={18} />
-              <span>{item.label}</span>
-            </button>
+            <div key={item.id} className="sidebar-item-wrapper">
+              <button
+                type="button"
+                onClick={() => setActiveTab(item.id)}
+                className={`sidebar-item-btn ${isActive ? 'active' : ''}`}
+                aria-label={item.label}
+              >
+                <Icon size={20} />
+              </button>
+              <div className="sidebar-tooltip">
+                {item.label}
+              </div>
+            </div>
           );
         })}
+      </div>
+
+      {/* Logout Action at Bottom */}
+      <div style={{ width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem', marginTop: 'auto' }}>
+        <div className="sidebar-item-wrapper">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="sidebar-item-btn logout-btn"
+            aria-label="Logout"
+          >
+            <LogOut size={20} />
+          </button>
+          <div className="sidebar-tooltip">
+            Logout
+          </div>
+        </div>
       </div>
     </aside>
   );
